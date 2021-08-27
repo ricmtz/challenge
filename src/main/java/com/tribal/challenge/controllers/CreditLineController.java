@@ -2,7 +2,9 @@ package com.tribal.challenge.controllers;
 
 import com.tribal.challenge.models.CreditRequestData;
 import com.tribal.challenge.services.CreditLineService;
+import com.tribal.challenge.services.RateLimitService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -14,10 +16,12 @@ import reactor.core.publisher.Mono;
 
 import java.net.URI;
 
+@Slf4j
 @Configuration
 @AllArgsConstructor
 public class CreditLineController {
 
+    private final RateLimitService rateLimitService;
     private final CreditLineService creditLineService;
 
     @Bean
@@ -28,10 +32,16 @@ public class CreditLineController {
     }
 
     private Mono<ServerResponse> requestCreditLine(ServerRequest serverRequest) {
+        var clientIp = serverRequest.exchange().getRequest().getRemoteAddress().getAddress().getHostAddress();
+
         return serverRequest.bodyToMono(CreditRequestData.class)
                 .flatMap(creditLineService::requestCreditLine)
                 .flatMap(it -> ServerResponse.created(URI.create("/v1/credits"))
                         .body(BodyInserters.fromValue(it))
-                );
+                )
+                .onErrorResume(ex -> {
+                    return rateLimitService.blockUser(clientIp)
+                            .flatMap(it -> ServerResponse.badRequest().build());
+                });
     }
 }
