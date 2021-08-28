@@ -1,5 +1,6 @@
 package com.tribal.challenge.controllers;
 
+import com.tribal.challenge.config.exceptions.GeneralErrorHandler;
 import com.tribal.challenge.models.CreditRequestData;
 import com.tribal.challenge.services.CreditLineService;
 import com.tribal.challenge.services.RateLimitService;
@@ -21,6 +22,7 @@ import java.net.URI;
 @AllArgsConstructor
 public class CreditLineController {
     private final CreditLineService creditLineService;
+    private final GeneralErrorHandler errorHandler;
 
     @Bean
     public RouterFunction<ServerResponse> creditLineRoutes(){
@@ -37,9 +39,6 @@ public class CreditLineController {
                 .flatMap(it -> ServerResponse.created(URI.create("/v1/credits"))
                         .body(BodyInserters.fromValue(it))
                 )
-                .onErrorResume(ex -> {
-                    log.info("Error -> {}", ex.getMessage());
-                    return ServerResponse.badRequest().build();
-                });
+                .onErrorResume(errorHandler::errorResponse);
     }
 }
