@@ -1,32 +1,42 @@
 package com.tribal.challenge.services;
 
-import com.tribal.challenge.models.BusinessType;
+import com.tribal.challenge.models.enums.BusinessType;
 import com.tribal.challenge.models.CreditRequestData;
 import com.tribal.challenge.repository.CreditLineRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 
 @Slf4j
 @Service
 @AllArgsConstructor
 public class CreditLineServiceImpl implements CreditLineService {
 
+    private final RateLimitService rateLimitService;
     private final CreditLineRepository creditLineRepository;
 
     @Override
     public Mono<CreditRequestData> requestCreditLine(CreditRequestData requestData, String ip) {
         log.info("requesting credit line");
-        return creditLineRepository.retrieveCreditLine(ip)
+        return rateLimitService.retrieveUserAttempts(ip)
+                .doOnNext(it -> log.info("atemps pre {}", it))
+                .filter(it -> it < 3)
+                .switchIfEmpty(Mono.error(new RuntimeException("A Sales Agent will contact you")))
+                .flatMap(it -> creditLineRepository.retrieveCreditLine(ip))
                 .doOnNext(it -> log.info("credit found finish"))
                 .switchIfEmpty(Mono.defer(() -> {
                     log.info("Generiting credit {}", requestData);
                     return requestData.validate()
-                                    .flatMap(this::checkCreditLineRequest)
-                                    .doOnNext(it -> log.info("credit aproved"))
-                                    .flatMap(it -> creditLineRepository.saveCreditRequest(it, ip));
+                            .flatMap(this::checkCreditLineRequest)
+                            .flatMap(it -> creditLineRepository.saveCreditRequest(it, ip))
+                            .flatMap(it -> rateLimitService.resetUserAttempts(ip)
+                                    .map(reset -> it)
+                            )
+                            .onErrorResume(ex -> {
+                                return rateLimitService.blockUser(ip)
+                                        .flatMap(it -> Mono.error(ex));
+                            });
                         })
                 );
     }

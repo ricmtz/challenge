@@ -20,8 +20,6 @@ import java.net.URI;
 @Configuration
 @AllArgsConstructor
 public class CreditLineController {
-
-    private final RateLimitService rateLimitService;
     private final CreditLineService creditLineService;
 
     @Bean
@@ -40,9 +38,8 @@ public class CreditLineController {
                         .body(BodyInserters.fromValue(it))
                 )
                 .onErrorResume(ex -> {
-                    log.info("Error -> {}", ex.getMessage(), ex);
-                    return rateLimitService.blockUser(clientIp)
-                            .flatMap(it -> ServerResponse.badRequest().build());
+                    log.info("Error -> {}", ex.getMessage());
+                    return ServerResponse.badRequest().build();
                 });
     }
 }

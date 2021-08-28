@@ -1,4 +1,4 @@
-package com.tribal.challenge.models;
+package com.tribal.challenge.models.enums;
 
 public enum BusinessType {
     STARTUP("startup"),

@@ -18,10 +18,12 @@ public class RateLimitServiceImpl implements  RateLimitService{
 
     private Map<String, List<LocalDateTime>> rateLimitPerIP;
     private Map<String, LocalDateTime> blockedUsersPerIP;
+    private Map<String, Integer> failedAttemptsPerIp;
 
     public RateLimitServiceImpl(){
         this.rateLimitPerIP = new HashMap<>();
         this.blockedUsersPerIP = new HashMap<>();
+        this.failedAttemptsPerIp = new HashMap<>();
     }
 
     @Override
@@ -34,8 +36,30 @@ public class RateLimitServiceImpl implements  RateLimitService{
 
     @Override
     public Mono<Boolean> blockUser(String ip) {
+        log.info("Blocking temporally users");
+        var attempts = failedAttemptsPerIp.getOrDefault(ip, 0);
+
+        failedAttemptsPerIp.put(ip, attempts + 1);
         blockedUsersPerIP.put(ip, LocalDateTime.now(ZoneOffset.UTC));
+
+        log.info("atemps {} ", failedAttemptsPerIp.get(ip));
+        if(failedAttemptsPerIp.get(ip) >= 3){
+            return Mono.error(new RuntimeException("A sales person will contact you"));
+        }
+
         return Mono.just(true);
+    }
+
+    @Override
+    public Mono<Boolean> resetUserAttempts(String ip) {
+        failedAttemptsPerIp.remove(ip);
+        log.info("atteps {}", failedAttemptsPerIp.getOrDefault(ip,0));
+        return Mono.just(true);
+    }
+
+    @Override
+    public Mono<Integer> retrieveUserAttempts(String ip) {
+        return Mono.just(failedAttemptsPerIp.getOrDefault(ip, 0));
     }
 
     private Mono<Boolean> userIsNotBlocked(String ip){

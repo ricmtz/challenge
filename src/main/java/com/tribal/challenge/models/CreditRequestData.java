@@ -2,6 +2,7 @@ package com.tribal.challenge.models;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.tribal.challenge.models.enums.BusinessType;
 import lombok.Data;
 import reactor.core.publisher.Mono;
 
@@ -29,7 +30,7 @@ public class CreditRequestData {
         Preconditions.checkArgument(requestedCreditLine > 0, "requestedCreditLine should be greater that 0");
 
         // For Startup, cashBalance and monthlyRevenue are required.
-        if(BusinessType.STARTUP.name.equalsIgnoreCase(foundingType)){
+        if(BusinessType.STARTUP.name().equalsIgnoreCase(foundingType)){
             Preconditions.checkArgument(cashBalance >= 0, "cashBalance should be grater or equals to 0");
         }
 
