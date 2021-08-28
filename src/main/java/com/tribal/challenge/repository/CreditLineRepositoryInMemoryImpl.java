@@ -1,6 +1,7 @@
 package com.tribal.challenge.repository;
 
 import com.tribal.challenge.models.CreditRequestData;
+import com.tribal.challenge.models.CreditRequestView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
@@ -12,14 +13,14 @@ import java.util.Map;
 @Repository
 public class CreditLineRepositoryInMemoryImpl implements CreditLineRepository{
 
-    private final Map<String, CreditRequestData> storage;
+    private final Map<String, CreditRequestView> storage;
 
     public CreditLineRepositoryInMemoryImpl() {
         this.storage = new HashMap<>();
     }
 
     @Override
-    public Mono<CreditRequestData> retrieveCreditLine(String ip) {
+    public Mono<CreditRequestView> retrieveCreditLine(String ip) {
         log.info("Ip {}", ip);
         if(!storage.containsKey(ip)){
             log.info("Payment not found");
@@ -35,9 +36,10 @@ public class CreditLineRepositoryInMemoryImpl implements CreditLineRepository{
     }
 
     @Override
-    public Mono<CreditRequestData> saveCreditRequest(CreditRequestData creditRequestData, String ip) {
+    public Mono<CreditRequestView> saveCreditRequest(CreditRequestData creditRequestData, String ip) {
         log.info("asdasd {}  --- {}", creditRequestData, ip);
-        storage.put(ip, creditRequestData);
-        return Mono.just(creditRequestData);
+        var auxCredit = CreditRequestView.of(creditRequestData);
+        storage.put(ip, auxCredit);
+        return Mono.just(auxCredit);
     }
 }

@@ -1,27 +1,37 @@
 package com.tribal.challenge.services;
 
+import com.tribal.challenge.models.CreditRequestView;
 import com.tribal.challenge.models.enums.BusinessType;
 import com.tribal.challenge.models.CreditRequestData;
 import com.tribal.challenge.repository.CreditLineRepository;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
-@AllArgsConstructor
 public class CreditLineServiceImpl implements CreditLineService {
+
+    private final int MAX_REQUEST_ATTEMPTS;
 
     private final RateLimitService rateLimitService;
     private final CreditLineRepository creditLineRepository;
 
+    public CreditLineServiceImpl(RateLimitService rateLimitService,
+                                 CreditLineRepository creditLineRepository,
+                                 @Value("${configs.requests-attempts:3}") int maxRequestAttempts) {
+
+        this.rateLimitService = rateLimitService;
+        this.creditLineRepository = creditLineRepository;
+        this.MAX_REQUEST_ATTEMPTS = maxRequestAttempts;
+    }
+
     @Override
-    public Mono<CreditRequestData> requestCreditLine(CreditRequestData requestData, String ip) {
-        log.info("requesting credit line");
+    public Mono<CreditRequestView> requestCreditLine(CreditRequestData requestData, String ip) {
+        log.info("requesting credit line attemps {}", MAX_REQUEST_ATTEMPTS);
         return rateLimitService.retrieveUserAttempts(ip)
-                .doOnNext(it -> log.info("atemps pre {}", it))
-                .filter(it -> it < 3)
+                .filter(it -> it < MAX_REQUEST_ATTEMPTS)
                 .switchIfEmpty(Mono.error(new RuntimeException("A Sales Agent will contact you")))
                 .flatMap(it -> creditLineRepository.retrieveCreditLine(ip))
                 .doOnNext(it -> log.info("credit found finish"))

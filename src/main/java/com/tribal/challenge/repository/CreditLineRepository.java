@@ -1,10 +1,11 @@
 package com.tribal.challenge.repository;
 
 import com.tribal.challenge.models.CreditRequestData;
+import com.tribal.challenge.models.CreditRequestView;
 import reactor.core.publisher.Mono;
 
 public interface CreditLineRepository {
-    Mono<CreditRequestData> retrieveCreditLine(String ip);
+    Mono<CreditRequestView> retrieveCreditLine(String ip);
     Mono<Boolean> alreadyHasCreditLine(String ip);
-    Mono<CreditRequestData> saveCreditRequest(CreditRequestData creditRequestData, String ip);
+    Mono<CreditRequestView> saveCreditRequest(CreditRequestData creditRequestData, String ip);
 }

@@ -32,11 +32,15 @@ public class CreditLineController {
     }
 
     private Mono<ServerResponse> requestCreditLine(ServerRequest serverRequest) {
-        var clientIp = serverRequest.exchange().getRequest().getRemoteAddress().getAddress().getHostAddress();
+        var clientIp = serverRequest.exchange()
+                .getRequest()
+                .getRemoteAddress()
+                .getAddress()
+                .getHostAddress();
 
         return serverRequest.bodyToMono(CreditRequestData.class)
                 .flatMap(it -> creditLineService.requestCreditLine(it, clientIp))
-                .flatMap(it -> ServerResponse.created(URI.create("/v1/credits"))
+                .flatMap(it -> ServerResponse.created(URI.create("/v1/credits/" + it.getId()))
                         .body(BodyInserters.fromValue(it))
                 )
                 .onErrorResume(errorHandler::errorResponse);
