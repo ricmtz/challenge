@@ -35,11 +35,12 @@ public class CreditLineController {
         var clientIp = serverRequest.exchange().getRequest().getRemoteAddress().getAddress().getHostAddress();
 
         return serverRequest.bodyToMono(CreditRequestData.class)
-                .flatMap(creditLineService::requestCreditLine)
+                .flatMap(it -> creditLineService.requestCreditLine(it, clientIp))
                 .flatMap(it -> ServerResponse.created(URI.create("/v1/credits"))
                         .body(BodyInserters.fromValue(it))
                 )
                 .onErrorResume(ex -> {
+                    log.info("Error -> {}", ex.getMessage(), ex);
                     return rateLimitService.blockUser(clientIp)
                             .flatMap(it -> ServerResponse.badRequest().build());
                 });

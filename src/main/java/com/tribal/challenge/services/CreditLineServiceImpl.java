@@ -2,18 +2,33 @@ package com.tribal.challenge.services;
 
 import com.tribal.challenge.models.BusinessType;
 import com.tribal.challenge.models.CreditRequestData;
+import com.tribal.challenge.repository.CreditLineRepository;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 @Slf4j
 @Service
+@AllArgsConstructor
 public class CreditLineServiceImpl implements CreditLineService {
 
+    private final CreditLineRepository creditLineRepository;
+
     @Override
-    public Mono<CreditRequestData> requestCreditLine(CreditRequestData requestData) {
-        return requestData.validate()
-                .flatMap(this::checkCreditLineRequest);
+    public Mono<CreditRequestData> requestCreditLine(CreditRequestData requestData, String ip) {
+        log.info("requesting credit line");
+        return creditLineRepository.retrieveCreditLine(ip)
+                .doOnNext(it -> log.info("credit found finish"))
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.info("Generiting credit {}", requestData);
+                    return requestData.validate()
+                                    .flatMap(this::checkCreditLineRequest)
+                                    .doOnNext(it -> log.info("credit aproved"))
+                                    .flatMap(it -> creditLineRepository.saveCreditRequest(it, ip));
+                        })
+                );
     }
 
     private Mono<CreditRequestData> checkCreditLineRequest(CreditRequestData requestData){
