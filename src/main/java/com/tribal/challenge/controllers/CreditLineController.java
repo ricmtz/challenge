@@ -3,7 +3,6 @@ package com.tribal.challenge.controllers;
 import com.tribal.challenge.config.exceptions.GeneralErrorHandler;
 import com.tribal.challenge.models.CreditRequestData;
 import com.tribal.challenge.services.CreditLineService;
-import com.tribal.challenge.services.RateLimitService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

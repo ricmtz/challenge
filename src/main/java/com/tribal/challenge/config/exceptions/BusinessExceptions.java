@@ -7,6 +7,9 @@ public class BusinessExceptions extends RuntimeException{
     private final String message;
     private final ErrorCode errorCode;
 
+    public static final BusinessExceptions MAX_ATTEMPTS_EXCEEDED = new BusinessExceptions(ErrorCode.REJECTED,
+            "A sales person will contact you");
+
     public BusinessExceptions(ErrorCode errorCode, String message){
         this.errorCode = errorCode;
         this.message = message;

@@ -1,8 +1,10 @@
 package com.tribal.challenge.services;
 
+import com.tribal.challenge.config.exceptions.BusinessExceptions;
 import com.tribal.challenge.models.CreditRequestView;
 import com.tribal.challenge.models.enums.BusinessType;
 import com.tribal.challenge.models.CreditRequestData;
+import com.tribal.challenge.models.enums.ErrorCode;
 import com.tribal.challenge.repository.CreditLineRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,39 +16,47 @@ import reactor.core.publisher.Mono;
 public class CreditLineServiceImpl implements CreditLineService {
 
     private final int MAX_REQUEST_ATTEMPTS;
+    private final double CASH_BALANCE_RATIO;
+    private final double MONTHLY_REVENUE_RATIO;
 
     private final RateLimitService rateLimitService;
     private final CreditLineRepository creditLineRepository;
 
     public CreditLineServiceImpl(RateLimitService rateLimitService,
                                  CreditLineRepository creditLineRepository,
-                                 @Value("${configs.requests-attempts:3}") int maxRequestAttempts) {
+                                 @Value("${configs.requests-attempts:3}") int maxRequestAttempts,
+                                 @Value("${configs.ratios.cash-balance:3}") double cashBalanceRatio,
+                                 @Value("${configs.ratios.monthly-ratio:5}") double monthlyRevenueRatio
+                                 ) {
 
         this.rateLimitService = rateLimitService;
         this.creditLineRepository = creditLineRepository;
         this.MAX_REQUEST_ATTEMPTS = maxRequestAttempts;
+        this.CASH_BALANCE_RATIO = cashBalanceRatio;
+        this.MONTHLY_REVENUE_RATIO = monthlyRevenueRatio;
     }
 
     @Override
     public Mono<CreditRequestView> requestCreditLine(CreditRequestData requestData, String ip) {
-        log.info("requesting credit line attemps {}", MAX_REQUEST_ATTEMPTS);
+        log.info("Requesting credit line.");
+
         return rateLimitService.retrieveUserAttempts(ip)
-                .filter(it -> it < MAX_REQUEST_ATTEMPTS)
-                .switchIfEmpty(Mono.error(new RuntimeException("A Sales Agent will contact you")))
+                .filter(currentAttempts -> currentAttempts < MAX_REQUEST_ATTEMPTS)
+                .switchIfEmpty(Mono.error(BusinessExceptions.MAX_ATTEMPTS_EXCEEDED))
                 .flatMap(it -> creditLineRepository.retrieveCreditLine(ip))
-                .doOnNext(it -> log.info("credit found finish"))
+                .doOnNext(it -> log.info("Credit for your the user {} already exists.", ip))
                 .switchIfEmpty(Mono.defer(() -> {
-                    log.info("Generiting credit {}", requestData);
+                    log.info("Previous credit not found, proceeding to create a new one for user {}.", ip);
+
                     return requestData.validate()
                             .flatMap(this::checkCreditLineRequest)
-                            .flatMap(it -> creditLineRepository.saveCreditRequest(it, ip))
-                            .flatMap(it -> rateLimitService.resetUserAttempts(ip)
-                                    .map(reset -> it)
+                            .flatMap(creditData -> creditLineRepository.saveCreditRequest(creditData, ip))
+                            .flatMap(creditRequestView -> rateLimitService.resetUserAttempts(ip)
+                                    .map(it -> creditRequestView)
                             )
-                            .onErrorResume(ex -> {
-                                return rateLimitService.blockUser(ip)
-                                        .flatMap(it -> Mono.error(ex));
-                            });
+                            .onErrorResume(ex -> rateLimitService.blockUser(ip)
+                                    .flatMap(it -> Mono.error(ex))
+                            );
                         })
                 );
     }
@@ -66,9 +76,14 @@ public class CreditLineServiceImpl implements CreditLineService {
         }
 
         return calcRecommendedCredit
+                .doOnNext(recommendedCredit -> log.info("recommended {} , requested {}", recommendedCredit,
+                        requestData.getRequestedCreditLine())
+                )
                 .filter(recommendedCredit -> recommendedCredit > requestData.getRequestedCreditLine())
                 .map(it -> requestData)
-                .switchIfEmpty(Mono.error(new RuntimeException("The credit Line could not be approved")));
+                .switchIfEmpty(Mono.error(new BusinessExceptions(ErrorCode.REJECTED,
+                        "The credit Line could not be approved"))
+                );
     }
 
     private Mono<Double> calcRecommendedCreditForSME(CreditRequestData requestData){
@@ -87,10 +102,10 @@ public class CreditLineServiceImpl implements CreditLineService {
     }
 
     private double calcCashBalance(double cashBalance){
-        return cashBalance * (1F/3F);
+        return cashBalance * (1/CASH_BALANCE_RATIO);
     }
 
     private double calcMonthlyRevenue(double monthlyRevenue){
-        return monthlyRevenue * (1F/5F);
+        return monthlyRevenue * (1F/ MONTHLY_REVENUE_RATIO);
     }
 }

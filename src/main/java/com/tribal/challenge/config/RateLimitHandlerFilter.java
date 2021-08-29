@@ -19,7 +19,10 @@ public class RateLimitHandlerFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        var clientIp = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+        var clientIp = exchange.getRequest()
+                .getRemoteAddress()
+                .getAddress()
+                .getHostAddress();
 
         return rateLimitService.checkRateLimit(clientIp)
                 .filter(it -> it)
