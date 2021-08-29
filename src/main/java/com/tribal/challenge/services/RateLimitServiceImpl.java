@@ -19,16 +19,26 @@ import java.util.stream.Collectors;
 public class RateLimitServiceImpl implements  RateLimitService{
 
     private final int MAX_REQUEST_ATTEMPTS;
+    private final int MAX_REQUEST_ALLOWED;
+    private final long MAX_MINUTES_THRESHOLD;
+    private final long BLOCK_TIME;
 
     private Map<String, List<LocalDateTime>> rateLimitPerIP;
     private Map<String, LocalDateTime> blockedUsersPerIP;
     private Map<String, Integer> failedAttemptsPerIp;
 
-    public RateLimitServiceImpl(@Value("${configs.requests-attempts:3}") int maxRequestAttempts){
+    public RateLimitServiceImpl(@Value("${configs.limits.requests-attempts:3}") int maxRequestAttempts,
+                                @Value("${configs.limits.requests-allowed:3}") int maxRequestAllowed,
+                                @Value("${configs.limits.requests-threshold.minutes:2}") long maxMinutesThreshold,
+                                @Value("${configs.limits.block-time.seconds:30}") long blockTime) {
+        this.MAX_REQUEST_ATTEMPTS = maxRequestAttempts;
+        this.MAX_REQUEST_ALLOWED = maxRequestAllowed;
+        this.MAX_MINUTES_THRESHOLD = maxMinutesThreshold;
+        this.BLOCK_TIME = blockTime;
+
         this.rateLimitPerIP = new HashMap<>();
         this.blockedUsersPerIP = new HashMap<>();
         this.failedAttemptsPerIp = new HashMap<>();
-        this.MAX_REQUEST_ATTEMPTS = maxRequestAttempts;
     }
 
     @Override
@@ -75,7 +85,7 @@ public class RateLimitServiceImpl implements  RateLimitService{
     private Mono<Boolean> userIsNotBlocked(String ip){
         log.info("Check user {} status.", ip);
 
-        var blockTime = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(30);
+        var blockTime = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(BLOCK_TIME);
 
         if(!blockedUsersPerIP.containsKey(ip)){
             return Mono.just(true);
@@ -97,15 +107,15 @@ public class RateLimitServiceImpl implements  RateLimitService{
         }
 
         return Mono.just(cleanOldRequestCount(lastRequests))
-                .filter(it -> it.size() < 3)
-                .map(it -> updateLimitCountForUser(ip, it))
+                .filter(latestRequest -> latestRequest.size() < MAX_REQUEST_ALLOWED)
+                .map(latestRequest -> updateLimitCountForUser(ip, latestRequest))
                 .switchIfEmpty(Mono.just(false));
     }
 
     private List<LocalDateTime> cleanOldRequestCount(List<LocalDateTime> localDateTimes){
         log.info("Clean ol request for user {}", localDateTimes);
 
-        var olderRequestAllowed = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(2L);
+        var olderRequestAllowed = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(MAX_MINUTES_THRESHOLD);
 
         return localDateTimes.stream()
                 .filter(it -> it.isAfter(olderRequestAllowed))

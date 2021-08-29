@@ -24,7 +24,7 @@ public class CreditLineServiceImpl implements CreditLineService {
 
     public CreditLineServiceImpl(RateLimitService rateLimitService,
                                  CreditLineRepository creditLineRepository,
-                                 @Value("${configs.requests-attempts:3}") int maxRequestAttempts,
+                                 @Value("${configs.limits.requests-attempts:3}") int maxRequestAttempts,
                                  @Value("${configs.ratios.cash-balance:3}") double cashBalanceRatio,
                                  @Value("${configs.ratios.monthly-ratio:5}") double monthlyRevenueRatio
                                  ) {
