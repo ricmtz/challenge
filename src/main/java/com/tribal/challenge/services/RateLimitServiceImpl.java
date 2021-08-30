@@ -123,7 +123,7 @@ public class RateLimitServiceImpl implements  RateLimitService{
     }
 
     private boolean updateLimitCountForUser(String ip, List<LocalDateTime> latestRequest){
-        log.info("Updating limit request for user {} -> {}", ip, latestRequest);
+        log.info("Updating limit request for user {}", ip);
 
         var aux = new ArrayList<>(latestRequest);
 

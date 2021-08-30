@@ -21,12 +21,13 @@ public class CreditLineRepositoryInMemoryImpl implements CreditLineRepository{
 
     @Override
     public Mono<CreditRequestView> retrieveCreditLine(String ip) {
-        log.info("Ip {}", ip);
+        log.info("Retrieving credit line for user {} from memory....", ip);
+
         if(!storage.containsKey(ip)){
-            log.info("Payment not found");
+            log.info("Credit line not found.");
             return Mono.empty();
         }
-        log.info("creditr found");
+
         return Mono.just(storage.get(ip));
     }
 
@@ -37,9 +38,11 @@ public class CreditLineRepositoryInMemoryImpl implements CreditLineRepository{
 
     @Override
     public Mono<CreditRequestView> saveCreditRequest(CreditRequestData creditRequestData, String ip) {
-        log.info("asdasd {}  --- {}", creditRequestData, ip);
+        log.info("Saving credit request in memory....");
+
         var auxCredit = CreditRequestView.of(creditRequestData);
         storage.put(ip, auxCredit);
+
         return Mono.just(auxCredit);
     }
 }

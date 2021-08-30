@@ -76,9 +76,6 @@ public class CreditLineServiceImpl implements CreditLineService {
         }
 
         return calcRecommendedCredit
-                .doOnNext(recommendedCredit -> log.info("recommended {} , requested {}", recommendedCredit,
-                        requestData.getRequestedCreditLine())
-                )
                 .filter(recommendedCredit -> recommendedCredit > requestData.getRequestedCreditLine())
                 .map(it -> requestData)
                 .switchIfEmpty(Mono.error(new BusinessExceptions(ErrorCode.REJECTED,
