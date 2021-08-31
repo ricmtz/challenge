@@ -15,8 +15,8 @@ import java.util.Map;
 public class GeneralErrorHandler {
 
     public Mono<ServerResponse> errorResponse(Throwable throwable){
-        if(throwable instanceof  BusinessExceptions){
-            var exception = (BusinessExceptions) throwable;
+        if(throwable instanceof BusinessException){
+            var exception = (BusinessException) throwable;
 
             return ServerResponse
                     .badRequest()

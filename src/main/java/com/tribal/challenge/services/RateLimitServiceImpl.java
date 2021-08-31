@@ -1,6 +1,6 @@
 package com.tribal.challenge.services;
 
-import com.tribal.challenge.config.exceptions.BusinessExceptions;
+import com.tribal.challenge.config.exceptions.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -61,7 +61,7 @@ public class RateLimitServiceImpl implements  RateLimitService{
         blockedUsersPerIP.put(ip, LocalDateTime.now(ZoneOffset.UTC));
 
         if(failedAttemptsPerIp.get(ip) >= MAX_REQUEST_ATTEMPTS){
-            return Mono.error(BusinessExceptions.MAX_ATTEMPTS_EXCEEDED);
+            return Mono.error(BusinessException.MAX_ATTEMPTS_EXCEEDED);
         }
 
         return Mono.just(true);

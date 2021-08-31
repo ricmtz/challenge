@@ -1,6 +1,6 @@
 package com.tribal.challenge.services;
 
-import com.tribal.challenge.config.exceptions.BusinessExceptions;
+import com.tribal.challenge.config.exceptions.BusinessException;
 import com.tribal.challenge.models.CreditRequestView;
 import com.tribal.challenge.models.enums.BusinessType;
 import com.tribal.challenge.models.CreditRequestData;
@@ -42,7 +42,7 @@ public class CreditLineServiceImpl implements CreditLineService {
 
         return rateLimitService.retrieveUserAttempts(ip)
                 .filter(currentAttempts -> currentAttempts < MAX_REQUEST_ATTEMPTS)
-                .switchIfEmpty(Mono.error(BusinessExceptions.MAX_ATTEMPTS_EXCEEDED))
+                .switchIfEmpty(Mono.error(BusinessException.MAX_ATTEMPTS_EXCEEDED))
                 .flatMap(it -> creditLineRepository.retrieveCreditLine(ip))
                 .doOnNext(it -> log.info("Credit for your the user {} already exists.", ip))
                 .switchIfEmpty(Mono.defer(() -> {
@@ -76,14 +76,15 @@ public class CreditLineServiceImpl implements CreditLineService {
         }
 
         return calcRecommendedCredit
-                .filter(recommendedCredit -> recommendedCredit > requestData.getRequestedCreditLine())
+                .filter(recommendedCredit -> recommendedCredit >= requestData.getRequestedCreditLine())
                 .map(it -> requestData)
-                .switchIfEmpty(Mono.error(new BusinessExceptions(ErrorCode.REJECTED,
+                .switchIfEmpty(Mono.error(new BusinessException(ErrorCode.REJECTED,
                         "The credit Line could not be approved"))
                 );
     }
 
     private Mono<Double> calcRecommendedCreditForSME(CreditRequestData requestData){
+        log.info("asda sme");
         return Mono.just(calcMonthlyRevenue(requestData.getMonthlyRevenue()));
     }
 
