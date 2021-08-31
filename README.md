@@ -3,22 +3,22 @@
 ## Main aspect of the code.
 - The request take as owner the client IP address, this is used to check the request limit, and validate if the client have already a credit.
 - Various properties are configurable through properties files:
-    - configs.limits.requests-attempts
+    - `configs.limits.requests-attempts`
         - For the number of attempts allowed before show the message "A sales person...".
         - Default: 3
-    - configs.ratios.cash-balance
+    - `configs.ratios.cash-balance`
         - For the ratio used to calculate the recommended credit line in base of the cash balance.
         - Default: 3
-    - configs.ratios.monthly-ratio
+    - `configs.ratios.monthly-ratio`
         - For the ratio used to calculate the recommended credit line in base of the monthly revenue.
         - Default: 5
-    - configs.limits.requests-allowed
+    - `configs.limits.requests-allowed`
         - To configure the number of request a user can do in a period of time.
         - Default: 3
-    - configs.limits.requests-threshold.minutes
+    - `configs.limits.requests-threshold.minutes`
         - The threshold of time to considered for the configuration `configs.limits.requests-allowed`
         - Default: 2
-    - configs.limits.block-time.seconds
+    - `configs.limits.block-time.seconds`
         - Defines the time that the user have to wait to send another request after fail a request.
         - Default: 30
 - Restful was used to design this micro-service.
